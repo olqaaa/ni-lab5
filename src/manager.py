@@ -24,12 +24,12 @@ class Manager:
                 return False
         return True
 
-    def get_apartment_costs(self, apartment_key: str, year: int | None = None, month: int | None = None) -> float:
+    def get_apartment_costs(self, apartment_key: str, year: int | None = None, month: int | None = None) -> float | None:
         if apartment_key not in self.apartments:
-            raise ValueError(f"Apartment '{apartment_key}' does not exist")
+            return None
         
         if month is not None and not (1 <= month <= 12):
-            raise ValueError(f"Invalid month: {month}")
+            return None
 
         total_cost = 0.0
         for bill in self.bills:
