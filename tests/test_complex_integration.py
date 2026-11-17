@@ -2,7 +2,7 @@ import pytest
 from src.manager import Manager
 from src.models import Parameters
 from src.models import Bill
-from src.models import ApartmentSettlement
+from src.models import ApartmentSettlement, TenantSettlement
 
 def test_get_apartment_costs():
     parameters = Parameters()
@@ -107,3 +107,41 @@ def test_create_apartment_settlement():
 
     #nieistniejace mieszkanie 
     assert manager.create_apartment_settlement("nieistniejace", 2024, 1) is None
+
+def test_create_tenant_settlements():
+    manager = Manager(Parameters())
+
+    manager.bills.append(Bill(
+        apartment="apart-polanka",
+        date_due="2024-02-10",
+        settlement_year=2024,
+        settlement_month=1,
+        amount_pln=300.0,
+        type="electricity"
+    ))
+
+    apt_settlement_3 = manager.create_apartment_settlement("apart-polanka", 2024, 1)
+    tenant_settlements_3 = manager.create_tenant_settlements(apt_settlement_3)
+
+    assert len(tenant_settlements_3) == 3
+    assert all(isinstance(ts, TenantSettlement) for ts in tenant_settlements_3)
+
+    ts_map = {ts.tenant: ts for ts in tenant_settlements_3}
+    assert ts_map["tenant-1"].rent_pln == 1500.0
+    assert ts_map["tenant-1"].bills_pln == 100.0
+    assert ts_map["tenant-1"].total_due_pln == 1600.0
+
+    apt_settlement_0 = manager.create_apartment_settlement("apart-polanka", 2025, 1)
+    tenant_settlements_0 = manager.create_tenant_settlements(apt_settlement_0)
+    assert tenant_settlements_0 == []
+
+    manager.tenants = {"tenant-1": manager.tenants["tenant-1"]}
+    apt_settlement_1 = manager.create_apartment_settlement("apart-polanka", 2024, 1)
+    tenant_settlements_1 = manager.create_tenant_settlements(apt_settlement_1)
+
+    assert len(tenant_settlements_1) == 1
+    assert tenant_settlements_1[0].tenant == "tenant-1"
+    assert tenant_settlements_1[0].rent_pln == 1500.0
+    assert tenant_settlements_1[0].bills_pln == 300.0
+    assert tenant_settlements_1[0].total_due_pln == 1800.0
+    

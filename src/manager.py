@@ -1,4 +1,4 @@
-from src.models import Apartment, ApartmentSettlement, Bill, Parameters, Tenant, Transfer
+from src.models import Apartment, ApartmentSettlement, Bill, Parameters, Tenant, Transfer, TenantSettlement
 
 
 class Manager:
@@ -65,3 +65,34 @@ class Manager:
             total_bills_pln=total_bills,
             total_due_pln=total_rent + total_bills
         )
+
+    def create_tenant_settlements(self, apartment_settlement: ApartmentSettlement) -> list[TenantSettlement]:
+        target_ym = f"{apartment_settlement.year:04d}-{apartment_settlement.month:02d}"
+
+        active_tenants = [
+            (tenant_key, tenant)
+            for tenant_key, tenant in self.tenants.items()
+            if tenant.apartment == apartment_settlement.apartment
+            and tenant.date_agreement_from[:7] <= target_ym <= tenant.date_agreement_to[:7]
+        ]
+
+        if not active_tenants:
+            return []
+
+        bills_per_tenant = apartment_settlement.total_bills_pln / len(active_tenants)
+        settlements = []
+
+        for tenant_key, tenant in active_tenants:
+            total_due = tenant.rent_pln + bills_per_tenant
+            settlements.append(TenantSettlement(
+                tenant=tenant_key,
+                apartment_settlement=apartment_settlement.apartment,
+                month=apartment_settlement.month,
+                year=apartment_settlement.year,
+                rent_pln=tenant.rent_pln,
+                bills_pln=bills_per_tenant,
+                total_due_pln=total_due,
+                balance_pln=total_due
+            ))
+
+        return settlements
